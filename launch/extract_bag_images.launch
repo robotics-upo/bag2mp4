@@ -1,0 +1,22 @@
+<launch>
+  <arg name="bag_file"                      default="my_bag_file.bag"/>
+  <arg name="bag_compressed_image_topic"    default="/usb_cam/image_raw"/>
+  <arg name="bag_contains_raw_topic"        default="false"/>
+  <arg name="output_folder"                 default="$(env HOME)/bag2mp4"/>
+  <arg name="sec_per_frame"                 default="0.01"/> # [Seconds]
+
+  # Run the bag file
+  <node name="rosbag_player" pkg="rosbag" type="play" required="true" args="$(arg bag_file)"/>
+  
+  # Transform Compressed to Raw Image
+  <group unless="$(arg bag_contains_raw_topic)">
+    <node name="image_republisher" pkg="image_transport" type="republish" required="true" args="compressed in:=$(arg bag_compressed_image_topic) raw out:=/republished/image_raw" />
+  </group>
+
+  # Extract JPG
+  <node name="images_extractor" pkg="image_view" type="extract_images" required="true" output="screen">
+    <remap from="image" to="/republished/image_raw"/>
+    <param name="filename_format" value="$(arg output_folder)/frame%04d.jpg"/>
+    <param name="sec_per_frame"   value="$(arg sec_per_frame)"/>
+  </node>
+</launch>
